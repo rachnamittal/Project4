@@ -19,9 +19,17 @@ using namespace std;
      that your master would use for its own bookkeeping and to convey the tasks
    to the workers for mapping */
 //File shard is hash of filenames with start and end offset of data structure in file split
+/*
 struct FileShard {
   unordered_map<string, 
   pair<streampos, streampos>> shardsMap;
+};
+*/
+
+struct FileShard {
+	std::vector<std::string> shardsMap;
+	std::vector<int> begin;
+	std::vector<int> end;
 };
 
 
@@ -41,11 +49,17 @@ struct FileShard {
     if(!myfile.is_open()){
 			std::cout << "Error in opening file\n";
 		}
+    //sizeofEachFile.push_back(myfile.tellg()); //file_size is in bytes
+    //std::cout << "\n sizeofEachFile : " <<sizeofEachFile[j] << std::endl;
     myfile.seekg(0, std::ios::beg);
     streampos begin = myfile.tellg();
     
     myfile.seekg(0, std::ios::end);
     streampos end = myfile.tellg();
+    uint64_t Size = (end - begin + 1); //each input file size
+    sizeofEachFile.push_back(Size); //file_size is in bytes
+    std::cout << "sizeofEachFile : " << sizeofEachFile[j] << endl;
+    
     totalSize += (end - begin + 1); //commulative file size of all input files
 
     std::cout << "\n TotalSize of each file : " <<totalSize << std::endl;
@@ -60,8 +74,9 @@ struct FileShard {
   std::cout << "\n # of shard are : " <<shardNums << std::endl;
 
   //Create individual file shard
-  for (auto& input : mr_spec.inputFiles) {
-    std::ifstream myfile(input, std::ios::binary);
+  //for (auto& input : mr_spec.inputFiles) {
+  for (int j = 0; j < inputs.size(); j++) {
+    std::ifstream myfile(inputs[j], std::ios::binary);
 
 
   //each input file size
@@ -76,7 +91,7 @@ struct FileShard {
   uint64_t fileSize = (end - begin + 1); //each input file size
   cout << "fileSize : " << fileSize << endl;
 
-    std::cout << "\n RACHNA Split filename : " << input << " size:" << fileSize
+    std::cout << "\n RACHNA Split filename : " << inputs[j] << " size:" << fileSize
               << ".\n";
     
     //offset zero in beginning
@@ -121,17 +136,25 @@ struct FileShard {
   
       //shard size
    
-      std::cout << "RACHNA Process offset (" << begin << "," << end << ") "
+      std::cout << "RACHNA-vector Process offset (" << begin << "," << end << ") "
                 << restSize << " bytes into shard ...\n";
 
       // store chunk into shards
+      /*
       FileShard temp;
       temp.shardsMap[input] = make_pair(begin, end);
       fileShards.push_back(std::move(temp));
+      */
 
+      FileShard shard;
+      shard.shardsMap.push_back(inputs[j]);
+			shard.begin.push_back(begin);
+			shard.end.push_back(end);
+      fileShards.push_back(shard);
+			
   
       offset = static_cast<int>(end) + 1;
-      cout << "offset ate end: " << offset << endl;
+      cout << "offset at end: " << offset << endl;
     }
     myfile.close();
   }
